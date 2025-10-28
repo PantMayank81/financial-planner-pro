@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Planner Pro</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #00A65A;
+            --secondary-color: #4A90E2;
+            --background-color: #ffffff;
+            --surface-color: #f8f9fa;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #e9ecef;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+
+        [data-theme="dark"] {
+            --background-color: #1a1a1a;
+            --surface-color: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface-color);
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle.active {
+            background: var(--primary-color);
+        }
+
+        .theme-toggle::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle.active::before {
+            transform: translateX(26px);
+        }
+
+        /* Material Design 3.0 Button */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Ripple Effect */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--background-color);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 166, 90, 0.1);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+        }
+
+        .badge-info {
+            background: rgba(23, 162, 184, 0.1);
+            color: var(--info-color);
+        }
+
+        /* Auth Screens */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .auth-card {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-hover);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .auth-switch a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            padding: 2rem 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: 1.5rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Goals */
+        .goal-card {
+            background: var(--surface-color);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .goal-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .goal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .goal-amount {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0.5rem 0;
+        }
+
+        .goal-progress {
+            margin: 1rem 0;
+        }
+
+        .goal-contribution {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface-color);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-hover);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .grid-2,
+            .grid-3,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .auth-card {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .goal-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Password Strength Indicator */
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+
+        .strength-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .strength-fill.weak {
+            width: 25%;
+            background: var(--danger-color);
+        }
+
+        .strength-fill.fair {
+            width: 50%;
+            background: var(--warning-color);
+        }
+
+        .strength-fill.good {
+            width: 75%;
+            background: var(--info-color);
+        }
+
+        .strength-fill.strong {
+            width: 100%;
+            background: var(--success-color);
+        }
+
+        .strength-text {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .strength-text.weak {
+            color: var(--danger-color);
+        }
+
+        .strength-text.fair {
+            color: var(--warning-color);
+        }
+
+        .strength-text.good {
+            color: var(--info-color);
+        }
+
+        .strength-text.strong {
+            color: var(--success-color);
+        }
+
+        .password-requirements {
+            font-size: 0.8rem;
+        }
+
+        .requirement {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-secondary);
+        }
+
+        .requirement.valid {
+            color: var(--success-color);
+        }
+
+        .requirement.valid i {
+            color: var(--success-color);
+        }
+
+        .requirement i {
+            color: var(--danger-color);
+            font-size: 0.7rem;
+        }
+
+        .password-toggle {
+            font-size: 0.9rem;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        /* Password Generator Modal */
+        .generator-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .generator-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .generator-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .generator-option input[type="number"] {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .generated-password {
+            background: var(--surface-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .generated-password strong {
+            color: var(--primary-color);
+        }
+
+        .copy-password {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .copy-password:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Saved Passwords */
+        .saved-passwords {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .saved-password-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .saved-password-item:last-child {
+            border-bottom: none;
+        }
+
+        .saved-password-info {
+            flex: 1;
+        }
+
+        .saved-password-email {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .saved-password-date {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .saved-password-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .saved-password-actions button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .saved-password-actions button:hover {
+            color: var(--primary-color);
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase Configuration -->
+    <script>
+        // Firebase configuration - Replace with your own config
+        const firebaseConfig = {
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    Financial Planner Pro
+                </div>
+                <div class="header-actions">
+                    <div class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    <button class="btn btn-outline" id="profileBtn" style="display: none;">
+                        <i class="fas fa-user"></i>
+                        Profile
+                    </button>
+                    <button class="btn btn-primary" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </button>
+                    <button class="btn btn-secondary" id="logoutBtn" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Auth Screens -->
+    <div id="authContainer" class="auth-container hidden">
+        <div class="auth-card">
+            <h2 class="auth-title" id="authTitle">Login</h2>
+            <form id="authForm">
+                <div class="form-group" id="nameGroup" style="display: none;">
+                    <label class="form-label" for="name">Full Name</label>
+                    <input type="text" id="name" class="form-input" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" id="passwordToggle" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordStrength" class="password-strength" style="display: none;">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="strengthText"></div>
+                        <div class="password-requirements" id="passwordRequirements">
+                            <div class="requirement" id="req-length"><i class="fas fa-times"></i> At least 8 characters</div>
+                            <div class="requirement" id="req-uppercase"><i class="fas fa-times"></i> One uppercase letter</div>
+                            <div class="requirement" id="req-lowercase"><i class="fas fa-times"></i> One lowercase letter</div>
+                            <div class="requirement" id="req-number"><i class="fas fa-times"></i> One number</div>
+                            <div class="requirement" id="req-special"><i class="fas fa-times"></i> One special character</div>
+                        </div>
+                    </div>
+                    <div class="password-actions" style="margin-top: 0.5rem;">
+                        <button type="button" class="btn btn-outline" id="generatePasswordBtn" style="font-size: 0.8rem; padding: 6px 12px;">
+                            <i class="fas fa-magic"></i>
+                            Generate Password
+                        </button>
+                        <button type="button" class="btn btn-outline" id="savePasswordBtn" style="font-size: 0.8rem; padding: 6px 12px; display: none;">
+                            <i class="fas fa-save"></i>
+                            Save Password
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span id="authSubmitText">Login</span>
+                </button>
+            </form>
+            <div class="auth-switch">
+                <a href="#" id="authSwitchLink">Don't have an account? Sign up</a>
+            </div>
+            <div class="auth-switch">
+                <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+            </div>
+            <div class="auth-switch">
+                <button class="btn btn-secondary" id="googleSignInBtn" style="width: 100%; margin-top: 1rem;">
+                    <i class="fab fa-google"></i>
+                    Sign in with Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <main id="dashboard" class="dashboard hidden">
+        <div class="container">
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalIncome">₹0</div>
+                    <div class="stat-label">Total Income</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalExpenses">₹0</div>
+                    <div class="stat-label">Total Expenses</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="netSavings">₹0</div>
+                    <div class="stat-label">Net Savings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="goalsProgress">0%</div>
+                    <div class="stat-label">Goals Progress</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                <div class="grid grid-4">
+                    <button class="btn btn-primary" id="addIncomeBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Income
+                    </button>
+                    <button class="btn btn-secondary" id="addExpenseBtn">
+                        <i class="fas fa-minus"></i>
+                        Add Expense
+                    </button>
+                    <button class="btn btn-outline" id="viewReportsBtn">
+                        <i class="fas fa-chart-bar"></i>
+                        View Reports
+                    </button>
+                    <button class="btn btn-outline" id="exportDataBtn">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Financial Goals -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Financial Goals</h3>
+                    <button class="btn btn-primary" id="addGoalBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Goal
+                    </button>
+                </div>
+                <div class="grid grid-2" id="goalsGrid">
+                    <!-- Goals will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Income & Expense Tracking -->
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Income Tracker</h3>
+                    </div>
+                    <div id="incomeList">
+                        <!-- Income entries will be populated dynamically -->
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Expense Tracker</h3>
+                    </div>
+                    <div id="expenseList">
+                        <!-- Expense entries will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Income vs Expenses</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="incomeExpenseChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Expense Categories</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="incomeModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Income</h3>
+                <button class="modal-close" id="closeIncomeModal">&times;</button>
+            </div>
+            <form id="incomeForm">
+                <div class="form-group">
+                    <label class="form-label" for="incomeSource">Income Source</label>
+                    <input type="text" id="incomeSource" class="form-input" placeholder="e.g., Salary, Freelance" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="incomeAmount">Amount (₹)</label>
+                    <input type="number" id="incomeAmount" class="form-input" placeholder="Enter amount" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="incomeDate">Date</label>
+                    <input type="date" id="incomeDate" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="incomeFrequency">Frequency</label>
+                    <select id="incomeFrequency" class="form-input" required>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="one-time">One-time</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="incomeGrowthRate">Annual Growth Rate (%)</label>
+                    <input type="number" id="incomeGrowthRate" class="form-input" placeholder="e.g., 10" step="0.1">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-plus"></i>
+                    Add Income
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="expenseModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Expense</h3>
+                <button class="modal-close" id="closeExpenseModal">&times;</button>
+            </div>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label class="form-label" for="expenseCategory">Category</label>
+                    <select id="expenseCategory" class="form-input" required>
+                        <option value="general">General (6% inflation)</option>
+                        <option value="education">Education (11% inflation)</option>
+                        <option value="healthcare">Healthcare (12% inflation)</option>
+                        <option value="food">Food (8% inflation)</option>
+                        <option value="transportation">Transportation</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="expenseDescription">Description</label>
+                    <input type="text" id="expenseDescription" class="form-input" placeholder="e.g., Groceries, Rent" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="expenseAmount">Amount (₹)</label>
+                    <input type="number" id="expenseAmount" class="form-input" placeholder="Enter amount" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="expenseDate">Date</label>
+                    <input type="date" id="expenseDate" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="expenseFrequency">Frequency</label>
+                    <select id="expenseFrequency" class="form-input" required>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="one-time">One-time</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-plus"></i>
+                    Add Expense
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="goalModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Financial Goal</h3>
+                <button class="modal-close" id="closeGoalModal">&times;</button>
+            </div>
+            <form id="goalForm">
+                <div class="form-group">
+                    <label class="form-label" for="goalName">Goal Name</label>
+                    <input type="text" id="goalName" class="form-input" placeholder="e.g., Emergency Fund" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="goalTarget">Target Amount (₹)</label>
+                    <input type="number" id="goalTarget" class="form-input" placeholder="Enter target amount" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="goalCurrent">Current Amount (₹)</label>
+                    <input type="number" id="goalCurrent" class="form-input" placeholder="Enter current amount" value="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="goalDeadline">Target Date</label>
+                    <input type="date" id="goalDeadline" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="goalPriority">Priority</label>
+                    <select id="goalPriority" class="form-input" required>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-plus"></i>
+                    Add Goal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Generator Modal -->
+    <div id="passwordGeneratorModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Generate Strong Password</h3>
+                <button class="modal-close" id="closePasswordGeneratorModal">&times;</button>
+            </div>
+            <div class="generator-options">
+                <div class="generator-option">
+                    <input type="number" id="passwordLength" value="12" min="8" max="50">
+                    <label>Length</label>
+                </div>
+                <div class="generator-option">
+                    <input type="checkbox" id="includeUppercase" checked>
+                    <label>Uppercase (A-Z)</label>
+                </div>
+                <div class="generator-option">
+                    <input type="checkbox" id="includeLowercase" checked>
+                    <label>Lowercase (a-z)</label>
+                </div>
+                <div class="generator-option">
+                    <input type="checkbox" id="includeNumbers" checked>
+                    <label>Numbers (0-9)</label>
+                </div>
+                <div class="generator-option">
+                    <input type="checkbox" id="includeSymbols" checked>
+                    <label>Symbols (!@#$%^&*)</label>
+                </div>
+                <div class="generator-option">
+                    <input type="checkbox" id="excludeSimilar">
+                    <label>Exclude similar chars (0,O,l,1)</label>
+                </div>
+            </div>
+            <div class="generated-password" id="generatedPassword" style="display: none;">
+                <strong id="generatedPasswordText"></strong>
+                <button class="copy-password" id="copyPasswordBtn" title="Copy to clipboard">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-primary" id="generateNewPassword" style="flex: 1;">
+                    <i class="fas fa-magic"></i>
+                    Generate Password
+                </button>
+                <button class="btn btn-secondary" id="useGeneratedPassword" style="flex: 1;" disabled>
+                    <i class="fas fa-check"></i>
+                    Use This Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Passwords Modal -->
+    <div id="savedPasswordsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Saved Passwords</h3>
+                <button class="modal-close" id="closeSavedPasswordsModal">&times;</button>
+            </div>
+            <div class="saved-passwords" id="savedPasswordsList">
+                <!-- Saved passwords will be populated here -->
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <button class="btn btn-outline" id="clearSavedPasswords">
+                    <i class="fas fa-trash"></i>
+                    Clear All Saved Passwords
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <div id="notificationMessage"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let userData = {
+            income: [],
+            expenses: [],
+            goals: [],
+            settings: {
+                theme: 'light'
+            }
+        };
+
+        // Pre-defined financial goals
+        const predefinedGoals = [
+            {
+                name: "Emergency Fund",
+                target: 300000,
+                current: 0,
+                deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "high",
+                description: "6 months of expenses"
+            },
+            {
+                name: "Retirement",
+                target: 30000000,
+                current: 0,
+                deadline: new Date(Date.now() + 30 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "high",
+                description: "Rs 3 Cr by 60"
+            },
+            {
+                name: "Child Education",
+                target: 5000000,
+                current: 0,
+                deadline: new Date(Date.now() + 15 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "high",
+                description: "Rs 50L"
+            },
+            {
+                name: "Home Down Payment",
+                target: 2000000,
+                current: 0,
+                deadline: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "medium",
+                description: "Rs 20L"
+            },
+            {
+                name: "Car Purchase",
+                target: 1200000,
+                current: 0,
+                deadline: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "medium",
+                description: "Rs 12L"
+            },
+            {
+                name: "Vacation Fund",
+                target: 300000,
+                current: 0,
+                deadline: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "low",
+                description: "Rs 3L"
+            },
+            {
+                name: "Wedding Fund",
+                target: 2500000,
+                current: 0,
+                deadline: new Date(Date.now() + 4 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "medium",
+                description: "Rs 25L"
+            },
+            {
+                name: "Wealth Building",
+                target: 10000000,
+                current: 0,
+                deadline: new Date(Date.now() + 20 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                priority: "high",
+                description: "Rs 1 Cr"
+            }
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            setupEventListeners();
+            setupThemeToggle();
+            setupAuthStateListener();
+            loadUserData();
+        }
+
+        function setupEventListeners() {
+            // Auth events
+            document.getElementById('loginBtn').addEventListener('click', showAuthScreen);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('authForm').addEventListener('submit', handleAuth);
+            document.getElementById('authSwitchLink').addEventListener('click', toggleAuthMode);
+            document.getElementById('forgotPasswordLink').addEventListener('click', resetPassword);
+            document.getElementById('googleSignInBtn').addEventListener('click', signInWithGoogle);
+
+            // Password events
+            document.getElementById('password').addEventListener('input', checkPasswordStrength);
+            document.getElementById('passwordToggle').addEventListener('click', togglePasswordVisibility);
+            document.getElementById('generatePasswordBtn').addEventListener('click', () => showModal('passwordGeneratorModal'));
+            document.getElementById('savePasswordBtn').addEventListener('click', () => showModal('savedPasswordsModal'));
+
+            // Password generator events
+            document.getElementById('generateNewPassword').addEventListener('click', generatePassword);
+            document.getElementById('useGeneratedPassword').addEventListener('click', useGeneratedPassword);
+            document.getElementById('copyPasswordBtn').addEventListener('click', copyPassword);
+            document.getElementById('closePasswordGeneratorModal').addEventListener('click', () => hideModal('passwordGeneratorModal'));
+
+            // Saved passwords events
+            document.getElementById('closeSavedPasswordsModal').addEventListener('click', () => hideModal('savedPasswordsModal'));
+            document.getElementById('clearSavedPasswords').addEventListener('click', clearSavedPasswords);
+
+            // Modal events
+            document.getElementById('addIncomeBtn').addEventListener('click', () => showModal('incomeModal'));
+            document.getElementById('addExpenseBtn').addEventListener('click', () => showModal('expenseModal'));
+            document.getElementById('addGoalBtn').addEventListener('click', () => showModal('goalModal'));
+            document.getElementById('closeIncomeModal').addEventListener('click', () => hideModal('incomeModal'));
+            document.getElementById('closeExpenseModal').addEventListener('click', () => hideModal('expenseModal'));
+            document.getElementById('closeGoalModal').addEventListener('click', () => hideModal('goalModal'));
+
+            // Form events
+            document.getElementById('incomeForm').addEventListener('submit', handleIncomeSubmit);
+            document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
+            document.getElementById('goalForm').addEventListener('submit', handleGoalSubmit);
+
+            // Other events
+            document.getElementById('viewReportsBtn').addEventListener('click', showReports);
+            document.getElementById('exportDataBtn').addEventListener('click', exportData);
+            document.getElementById('profileBtn').addEventListener('click', showProfile);
+
+            // Modal backdrop click
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideModal(modal.id);
+                    }
+                });
+            });
+        }
+
+        function setupThemeToggle() {
+            const themeToggle = document.getElementById('themeToggle');
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeToggle.classList.toggle('active', savedTheme === 'dark');
+            
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                themeToggle.classList.toggle('active', newTheme === 'dark');
+                localStorage.setItem('theme', newTheme);
+                
+                if (currentUser) {
+                    updateUserSettings({ theme: newTheme });
+                }
+            });
+        }
+
+        function setupAuthStateListener() {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    showDashboard();
+                    loadUserData();
+                } else {
+                    showAuthScreen();
+                }
+            });
+        }
+
+        function showAuthScreen() {
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginBtn').style.display = 'inline-flex';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('profileBtn').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-flex';
+            document.getElementById('profileBtn').style.display = 'inline-flex';
+            
+            // Initialize predefined goals if none exist
+            if (userData.goals.length === 0) {
+                userData.goals = [...predefinedGoals];
+                saveUserData();
+            }
+            
+            updateDashboard();
+        }
+
+        function toggleAuthMode() {
+            const authTitle = document.getElementById('authTitle');
+            const authSubmitText = document.getElementById('authSubmitText');
+            const authSwitchLink = document.getElementById('authSwitchLink');
+            const nameGroup = document.getElementById('nameGroup');
+            
+            const isLogin = authTitle.textContent === 'Login';
+            
+            if (isLogin) {
+                authTitle.textContent = 'Sign Up';
+                authSubmitText.textContent = 'Sign Up';
+                authSwitchLink.textContent = 'Already have an account? Login';
+                nameGroup.style.display = 'block';
+            } else {
+                authTitle.textContent = 'Login';
+                authSubmitText.textContent = 'Login';
+                authSwitchLink.textContent = "Don't have an account? Sign up";
+                nameGroup.style.display = 'none';
+            }
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+            const isLogin = document.getElementById('authTitle').textContent === 'Login';
+            
+            showLoading(true);
+            
+            if (isLogin) {
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        showNotification('Login successful!', 'success');
+                        hideModal('authContainer');
+                    })
+                    .catch(error => {
+                        showNotification(error.message, 'error');
+                    })
+                    .finally(() => {
+                        showLoading(false);
+                    });
+            } else {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        return userCredential.user.updateProfile({
+                            displayName: name
+                        });
+                    })
+                    .then(() => {
+                        showNotification('Account created successfully!', 'success');
+                        hideModal('authContainer');
+                    })
+                    .catch(error => {
+                        showNotification(error.message, 'error');
+                    })
+                    .finally(() => {
+                        showLoading(false);
+                    });
+            }
+        }
+
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            showLoading(true);
+            
+            auth.signInWithPopup(provider)
+                .then(() => {
+                    showNotification('Google sign-in successful!', 'success');
+                })
+                .catch(error => {
+                    showNotification(error.message, 'error');
+                })
+                .finally(() => {
+                    showLoading(false);
+                });
+        }
+
+        function resetPassword() {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                showNotification('Please enter your email first', 'warning');
+                return;
+            }
+            
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    showNotification('Password reset email sent!', 'success');
+                })
+                .catch(error => {
+                    showNotification(error.message, 'error');
+                });
+        }
+
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    showNotification('Logged out successfully', 'success');
+                })
+                .catch(error => {
+                    showNotification(error.message, 'error');
+                });
+        }
+
+        function loadUserData() {
+            if (!currentUser) return;
+            
+            showLoading(true);
+            
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        userData = { ...userData, ...doc.data() };
+                    } else {
+                        // Initialize with predefined goals
+                        userData.goals = [...predefinedGoals];
+                        saveUserData();
+                    }
+                    updateDashboard();
+                })
+                .catch(error => {
+                    console.error('Error loading user data:', error);
+                    showNotification('Error loading data', 'error');
+                })
+                .finally(() => {
+                    showLoading(false);
+                });
+        }
+
+        function saveUserData() {
+            if (!currentUser) return;
+            
+            db.collection('users').doc(currentUser.uid).set(userData)
+                .catch(error => {
+                    console.error('Error saving user data:', error);
+                    showNotification('Error saving data', 'error');
+                });
+        }
+
+        function updateUserSettings(settings) {
+            userData.settings = { ...userData.settings, ...settings };
+            saveUserData();
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).querySelector('form').reset();
+        }
+
+        function handleIncomeSubmit(e) {
+            e.preventDefault();
+            
+            const income = {
+                id: Date.now().toString(),
+                source: document.getElementById('incomeSource').value,
+                amount: parseFloat(document.getElementById('incomeAmount').value),
+                date: document.getElementById('incomeDate').value,
+                frequency: document.getElementById('incomeFrequency').value,
+                growthRate: parseFloat(document.getElementById('incomeGrowthRate').value) || 0,
+                createdAt: new Date().toISOString()
+            };
+            
+            userData.income.push(income);
+            saveUserData();
+            updateDashboard();
+            hideModal('incomeModal');
+            showNotification('Income added successfully!', 'success');
+        }
+
+        function handleExpenseSubmit(e) {
+            e.preventDefault();
+            
+            const expense = {
+                id: Date.now().toString(),
+                category: document.getElementById('expenseCategory').value,
+                description: document.getElementById('expenseDescription').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                date: document.getElementById('expenseDate').value,
+                frequency: document.getElementById('expenseFrequency').value,
+                createdAt: new Date().toISOString()
+            };
+            
+            userData.expenses.push(expense);
+            saveUserData();
+            updateDashboard();
+            hideModal('expenseModal');
+            showNotification('Expense added successfully!', 'success');
+        }
+
+        function handleGoalSubmit(e) {
+            e.preventDefault();
+            
+            const goal = {
+                id: Date.now().toString(),
+                name: document.getElementById('goalName').value,
+                target: parseFloat(document.getElementById('goalTarget').value),
+                current: parseFloat(document.getElementById('goalCurrent').value) || 0,
+                deadline: document.getElementById('goalDeadline').value,
+                priority: document.getElementById('goalPriority').value,
+                createdAt: new Date().toISOString()
+            };
+            
+            userData.goals.push(goal);
+            saveUserData();
+            updateDashboard();
+            hideModal('goalModal');
+            showNotification('Goal added successfully!', 'success');
+        }
+
+        function updateDashboard() {
+            updateStats();
+            updateGoalsGrid();
+            updateIncomeList();
+            updateExpenseList();
+            updateCharts();
+        }
+
+        function updateStats() {
+            const totalIncome = userData.income.reduce((sum, item) => {
+                if (item.frequency === 'monthly') return sum + (item.amount * 12);
+                if (item.frequency === 'yearly') return sum + item.amount;
+                return sum + item.amount;
+            }, 0);
+            
+            const totalExpenses = userData.expenses.reduce((sum, item) => {
+                if (item.frequency === 'monthly') return sum + (item.amount * 12);
+                if (item.frequency === 'yearly') return sum + item.amount;
+                return sum + item.amount;
+            }, 0);
+            
+            const netSavings = totalIncome - totalExpenses;
+            
+            const totalGoalTarget = userData.goals.reduce((sum, goal) => sum + goal.target, 0);
+            const totalGoalCurrent = userData.goals.reduce((sum, goal) => sum + goal.current, 0);
+            const goalsProgress = totalGoalTarget > 0 ? Math.round((totalGoalCurrent / totalGoalTarget) * 100) : 0;
+            
+            document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
+            document.getElementById('netSavings').textContent = formatCurrency(netSavings);
+            document.getElementById('goalsProgress').textContent = goalsProgress + '%';
+        }
+
+        function updateGoalsGrid() {
+            const goalsGrid = document.getElementById('goalsGrid');
+            goalsGrid.innerHTML = '';
+            
+            userData.goals.forEach(goal => {
+                const progress = Math.min((goal.current / goal.target) * 100, 100);
+                const monthsRemaining = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24 * 30));
+                const monthlyContribution = monthsRemaining > 0 ? (goal.target - goal.current) / monthsRemaining : 0;
+                
+                const statusBadge = getStatusBadge(progress, monthsRemaining);
+                
+                const goalCard = document.createElement('div');
+                goalCard.className = 'goal-card';
+                goalCard.innerHTML = `
+                    <div class="goal-header">
+                        <h4 class="goal-title">${goal.name}</h4>
+                        <span class="badge ${statusBadge.class}">${statusBadge.text}</span>
+                    </div>
+                    <div class="goal-amount">${formatCurrency(goal.current)} / ${formatCurrency(goal.target)}</div>
+                    <div class="goal-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="goal-contribution">
+                            Monthly needed: ${formatCurrency(monthlyContribution)}
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="updateGoalProgress('${goal.id}')" style="width: 100%;">
+                            <i class="fas fa-plus"></i>
+                            Add Progress
+                        </button>
+                    </div>
+                `;
+                goalsGrid.appendChild(goalCard);
+            });
+        }
+
+        function getStatusBadge(progress, monthsRemaining) {
+            if (progress >= 100) {
+                return { class: 'badge-success', text: 'Completed' };
+            } else if (monthsRemaining < 0) {
+                return { class: 'badge-danger', text: 'Overdue' };
+            } else if (progress >= 75) {
+                return { class: 'badge-success', text: 'On Track' };
+            } else if (progress >= 50) {
+                return { class: 'badge-warning', text: 'Progress' };
+            } else {
+                return { class: 'badge-info', text: 'Started' };
+            }
+        }
+
+        function updateGoalProgress(goalId) {
+            const goal = userData.goals.find(g => g.id === goalId);
+            if (!goal) return;
+            
+            const amount = prompt(`Enter amount to add to ${goal.name}:`);
+            if (amount && !isNaN(amount)) {
+                goal.current += parseFloat(amount);
+                saveUserData();
+                updateDashboard();
+                showNotification('Goal progress updated!', 'success');
+            }
+        }
+
+        function updateIncomeList() {
+            const incomeList = document.getElementById('incomeList');
+            incomeList.innerHTML = '';
+            
+            userData.income.slice(-5).reverse().forEach(income => {
+                const incomeItem = document.createElement('div');
+                incomeItem.className = 'card';
+                incomeItem.style.marginBottom = '0.5rem';
+                incomeItem.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${income.source}</strong>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                                ${formatCurrency(income.amount)} - ${income.frequency}
+                            </div>
+                        </div>
+                        <div style="color: var(--success-color); font-weight: 600;">
+                            ${formatCurrency(income.amount)}
+                        </div>
+                    </div>
+                `;
+                incomeList.appendChild(incomeItem);
+            });
+        }
+
+        function updateExpenseList() {
+            const expenseList = document.getElementById('expenseList');
+            expenseList.innerHTML = '';
+            
+            userData.expenses.slice(-5).reverse().forEach(expense => {
+                const expenseItem = document.createElement('div');
+                expenseItem.className = 'card';
+                expenseItem.style.marginBottom = '0.5rem';
+                expenseItem.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>${expense.description}</strong>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                                ${expense.category} - ${expense.frequency}
+                            </div>
+                        </div>
+                        <div style="color: var(--danger-color); font-weight: 600;">
+                            -${formatCurrency(expense.amount)}
+                        </div>
+                    </div>
+                `;
+                expenseList.appendChild(expenseItem);
+            });
+        }
+
+        function updateCharts() {
+            updateIncomeExpenseChart();
+            updateExpenseCategoryChart();
+        }
+
+        function updateIncomeExpenseChart() {
+            const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+            
+            const monthlyIncome = userData.income.reduce((sum, item) => {
+                if (item.frequency === 'monthly') return sum + item.amount;
+                if (item.frequency === 'yearly') return sum + (item.amount / 12);
+                return sum + (item.amount / 12);
+            }, 0);
+            
+            const monthlyExpenses = userData.expenses.reduce((sum, item) => {
+                if (item.frequency === 'monthly') return sum + item.amount;
+                if (item.frequency === 'yearly') return sum + (item.amount / 12);
+                return sum + (item.amount / 12);
+            }, 0);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Monthly Income', 'Monthly Expenses'],
+                    datasets: [{
+                        data: [monthlyIncome, monthlyExpenses],
+                        backgroundColor: [var(--primary-color), var(--secondary-color)],
+                        borderColor: [var(--primary-color), var(--secondary-color)],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateExpenseCategoryChart() {
+            const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
+            
+            const categoryTotals = {};
+            userData.expenses.forEach(expense => {
+                const amount = expense.frequency === 'monthly' ? expense.amount * 12 : 
+                              expense.frequency === 'yearly' ? expense.amount : expense.amount;
+                categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + amount;
+            });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categoryTotals),
+                    datasets: [{
+                        data: Object.values(categoryTotals),
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF',
+                            '#FF9F40',
+                            '#FF6384',
+                            '#C9CBCF'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function showReports() {
+            // Create a comprehensive reports modal
+            const reportsModal = document.createElement('div');
+            reportsModal.className = 'modal';
+            reportsModal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Financial Reports</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="card">
+                            <h4>Income Analysis</h4>
+                            <div id="incomeAnalysisChart" style="height: 200px;"></div>
+                        </div>
+                        <div class="card">
+                            <h4>Expense Analysis</h4>
+                            <div id="expenseAnalysisChart" style="height: 200px;"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>Goal Progress Summary</h4>
+                        <div id="goalSummary"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(reportsModal);
+            
+            // Generate reports
+            generateIncomeAnalysis();
+            generateExpenseAnalysis();
+            generateGoalSummary();
+        }
+
+        function generateIncomeAnalysis() {
+            // Implementation for income analysis chart
+        }
+
+        function generateExpenseAnalysis() {
+            // Implementation for expense analysis chart
+        }
+
+        function generateGoalSummary() {
+            const goalSummary = document.getElementById('goalSummary');
+            if (!goalSummary) return;
+            
+            let summaryHTML = '<div class="grid grid-2">';
+            userData.goals.forEach(goal => {
+                const progress = Math.min((goal.current / goal.target) * 100, 100);
+                summaryHTML += `
+                    <div class="goal-card">
+                        <h5>${goal.name}</h5>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div>${formatCurrency(goal.current)} / ${formatCurrency(goal.target)}</div>
+                    </div>
+                `;
+            });
+            summaryHTML += '</div>';
+            goalSummary.innerHTML = summaryHTML;
+        }
+
+        function exportData() {
+            const dataToExport = {
+                user: currentUser.email,
+                exportDate: new Date().toISOString(),
+                data: userData
+            };
+            
+            const dataStr = JSON.stringify(dataToExport, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `financial-data-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            showNotification('Data exported successfully!', 'success');
+        }
+
+        function showProfile() {
+            const profileModal = document.createElement('div');
+            profileModal.className = 'modal';
+            profileModal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">User Profile</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="card">
+                        <h4>Account Information</h4>
+                        <p><strong>Email:</strong> ${currentUser.email}</p>
+                        <p><strong>Name:</strong> ${currentUser.displayName || 'Not set'}</p>
+                        <p><strong>Member since:</strong> ${new Date(currentUser.metadata.creationTime).toLocaleDateString()}</p>
+                    </div>
+                    <div class="card">
+                        <h4>Data Summary</h4>
+                        <p><strong>Total Income Entries:</strong> ${userData.income.length}</p>
+                        <p><strong>Total Expense Entries:</strong> ${userData.expenses.length}</p>
+                        <p><strong>Total Goals:</strong> ${userData.goals.length}</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(profileModal);
+        }
+
+        function showLoading(show) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (show) {
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationMessage = document.getElementById('notificationMessage');
+            
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Password Strength Functions
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthContainer = document.getElementById('passwordStrength');
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            const savePasswordBtn = document.getElementById('savePasswordBtn');
+
+            if (password.length === 0) {
+                strengthContainer.style.display = 'none';
+                savePasswordBtn.style.display = 'none';
+                return;
+            }
+
+            strengthContainer.style.display = 'block';
+            savePasswordBtn.style.display = 'inline-flex';
+
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+            };
+
+            // Update requirement indicators
+            Object.keys(requirements).forEach(req => {
+                const element = document.getElementById(`req-${req}`);
+                const icon = element.querySelector('i');
+                
+                if (requirements[req]) {
+                    element.classList.add('valid');
+                    icon.className = 'fas fa-check';
+                } else {
+                    element.classList.remove('valid');
+                    icon.className = 'fas fa-times';
+                }
+            });
+
+            // Calculate strength score
+            const score = Object.values(requirements).filter(Boolean).length;
+            let strength = 'weak';
+            let strengthClass = 'weak';
+
+            if (score >= 5) {
+                strength = 'strong';
+                strengthClass = 'strong';
+            } else if (score >= 4) {
+                strength = 'good';
+                strengthClass = 'good';
+            } else if (score >= 3) {
+                strength = 'fair';
+                strengthClass = 'fair';
+            }
+
+            // Update strength bar and text
+            strengthFill.className = `strength-fill ${strengthClass}`;
+            strengthText.className = `strength-text ${strengthClass}`;
+            strengthText.textContent = `Password strength: ${strength.charAt(0).toUpperCase() + strength.slice(1)}`;
+        }
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = document.getElementById('passwordToggle');
+            const icon = toggleBtn.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        // Password Generator Functions
+        function generatePassword() {
+            const length = parseInt(document.getElementById('passwordLength').value);
+            const includeUppercase = document.getElementById('includeUppercase').checked;
+            const includeLowercase = document.getElementById('includeLowercase').checked;
+            const includeNumbers = document.getElementById('includeNumbers').checked;
+            const includeSymbols = document.getElementById('includeSymbols').checked;
+            const excludeSimilar = document.getElementById('excludeSimilar').checked;
+
+            let charset = '';
+            if (includeUppercase) charset += excludeSimilar ? 'ABCDEFGHJKLMNPQRSTUVWXYZ' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (includeLowercase) charset += excludeSimilar ? 'abcdefghijkmnpqrstuvwxyz' : 'abcdefghijklmnopqrstuvwxyz';
+            if (includeNumbers) charset += excludeSimilar ? '23456789' : '0123456789';
+            if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+            if (charset === '') {
+                showNotification('Please select at least one character type', 'warning');
+                return;
+            }
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+
+            // Display generated password
+            document.getElementById('generatedPasswordText').textContent = password;
+            document.getElementById('generatedPassword').style.display = 'flex';
+            document.getElementById('useGeneratedPassword').disabled = false;
+        }
+
+        function useGeneratedPassword() {
+            const generatedPassword = document.getElementById('generatedPasswordText').textContent;
+            document.getElementById('password').value = generatedPassword;
+            checkPasswordStrength();
+            hideModal('passwordGeneratorModal');
+            showNotification('Password applied successfully!', 'success');
+        }
+
+        function copyPassword() {
+            const passwordText = document.getElementById('generatedPasswordText').textContent;
+            navigator.clipboard.writeText(passwordText).then(() => {
+                showNotification('Password copied to clipboard!', 'success');
+            }).catch(() => {
+                showNotification('Failed to copy password', 'error');
+            });
+        }
+
+        // Password Saving Functions
+        function savePassword() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showNotification('Please enter both email and password', 'warning');
+                return;
+            }
+
+            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords') || '[]');
+            
+            // Check if password for this email already exists
+            const existingIndex = savedPasswords.findIndex(item => item.email === email);
+            
+            const passwordData = {
+                email: email,
+                password: password,
+                savedAt: new Date().toISOString(),
+                strength: getPasswordStrength(password)
+            };
+
+            if (existingIndex >= 0) {
+                savedPasswords[existingIndex] = passwordData;
+                showNotification('Password updated successfully!', 'success');
+            } else {
+                savedPasswords.push(passwordData);
+                showNotification('Password saved successfully!', 'success');
+            }
+
+            localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
+            updateSavedPasswordsList();
+        }
+
+        function getPasswordStrength(password) {
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+            };
+
+            const score = Object.values(requirements).filter(Boolean).length;
+            
+            if (score >= 5) return 'strong';
+            if (score >= 4) return 'good';
+            if (score >= 3) return 'fair';
+            return 'weak';
+        }
+
+        function updateSavedPasswordsList() {
+            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords') || '[]');
+            const container = document.getElementById('savedPasswordsList');
+            
+            if (savedPasswords.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">No saved passwords</div>';
+                return;
+            }
+
+            container.innerHTML = savedPasswords.map((item, index) => `
+                <div class="saved-password-item">
+                    <div class="saved-password-info">
+                        <div class="saved-password-email">${item.email}</div>
+                        <div class="saved-password-date">Saved: ${new Date(item.savedAt).toLocaleDateString()}</div>
+                    </div>
+                    <div class="saved-password-actions">
+                        <button onclick="loadSavedPassword(${index})" title="Load password">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button onclick="deleteSavedPassword(${index})" title="Delete password">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadSavedPassword(index) {
+            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords') || '[]');
+            if (savedPasswords[index]) {
+                document.getElementById('email').value = savedPasswords[index].email;
+                document.getElementById('password').value = savedPasswords[index].password;
+                checkPasswordStrength();
+                hideModal('savedPasswordsModal');
+                showNotification('Password loaded successfully!', 'success');
+            }
+        }
+
+        function deleteSavedPassword(index) {
+            const savedPasswords = JSON.parse(localStorage.getItem('savedPasswords') || '[]');
+            savedPasswords.splice(index, 1);
+            localStorage.setItem('savedPasswords', JSON.stringify(savedPasswords));
+            updateSavedPasswordsList();
+            showNotification('Password deleted successfully!', 'success');
+        }
+
+        function clearSavedPasswords() {
+            if (confirm('Are you sure you want to clear all saved passwords?')) {
+                localStorage.removeItem('savedPasswords');
+                updateSavedPasswordsList();
+                showNotification('All saved passwords cleared!', 'success');
+            }
+        }
+
+
+        // Initialize charts when dashboard is shown
+        function initializeCharts() {
+            if (userData.income.length > 0 || userData.expenses.length > 0) {
+                updateCharts();
+            }
+        }
+
+        // Set default date values and initialize password features
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('incomeDate').value = today;
+            document.getElementById('expenseDate').value = today;
+            
+            // Initialize saved passwords list
+            updateSavedPasswordsList();
+            
+            // Add save password button click handler
+            document.getElementById('savePasswordBtn').addEventListener('click', savePassword);
+        });
+    </script>
+</body>
+</html>
