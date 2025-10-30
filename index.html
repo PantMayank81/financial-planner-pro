@@ -1789,6 +1789,8 @@
 
         function updateIncomeExpenseChart() {
             const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+            const primaryColor = getCssVar('--primary-color');
+            const secondaryColor = getCssVar('--secondary-color');
             
             const monthlyIncome = userData.income.reduce((sum, item) => {
                 if (item.frequency === 'monthly') return sum + item.amount;
@@ -1808,8 +1810,8 @@
                     labels: ['Monthly Income', 'Monthly Expenses'],
                     datasets: [{
                         data: [monthlyIncome, monthlyExpenses],
-                        backgroundColor: [var(--primary-color), var(--secondary-color)],
-                        borderColor: [var(--primary-color), var(--secondary-color)],
+                        backgroundColor: [primaryColor, secondaryColor],
+                        borderColor: [primaryColor, secondaryColor],
                         borderWidth: 1
                     }]
                 },
@@ -2002,6 +2004,11 @@
             setTimeout(() => {
                 notification.classList.remove('show');
             }, 3000);
+        }
+
+        // Read CSS variables safely in JS
+        function getCssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#00A65A';
         }
 
         function formatCurrency(amount) {
