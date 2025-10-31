@@ -97,6 +97,24 @@
             gap: 1rem;
         }
 
+        .icon-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            width: 48px; /* accessibility target */
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .icon-btn:hover {
+            color: var(--primary-color);
+            background: rgba(0,0,0,0.04);
+        }
+
         /* Theme Toggle */
         .theme-toggle {
             position: relative;
@@ -486,6 +504,26 @@
             border-left: 4px solid var(--warning-color);
         }
 
+        /* Skeletons */
+        .skeleton {
+            background: linear-gradient(90deg, var(--border-color) 25%, rgba(255,255,255,0.1) 37%, var(--border-color) 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.4s ease infinite;
+            border-radius: 8px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        .skeleton-line { height: 14px; margin: 8px 0; }
+        .skeleton-rect { height: 120px; }
+
+        /* Empty states */
+        .empty-state { text-align: center; padding: 2rem; color: var(--text-secondary); }
+        .empty-state i { font-size: 2rem; color: var(--secondary-color); margin-bottom: 0.5rem; }
+        .empty-steps { display: flex; gap: 1rem; justify-content: center; margin: 1rem 0; color: var(--text-secondary); }
+        .empty-steps span { background: var(--surface-color); padding: 8px 12px; border-radius: 12px; box-shadow: var(--shadow); }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -821,19 +859,22 @@
                     Financial Planner Pro
                 </div>
                 <div class="header-actions">
-                    <div class="theme-toggle" id="themeToggle">
-                        <i class="fas fa-moon"></i>
+                    <div class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                        <i class="fas fa-moon" aria-hidden="true"></i>
                     </div>
+                    <button class="icon-btn" id="helpBtn" aria-label="Help" title="Help">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i>
+                    </button>
                     <button class="btn btn-outline" id="profileBtn" style="display: none;">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user" aria-hidden="true"></i>
                         Profile
                     </button>
                     <button class="btn btn-primary" id="loginBtn">
-                        <i class="fas fa-sign-in-alt"></i>
+                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                         Login
                     </button>
                     <button class="btn btn-secondary" id="logoutBtn" style="display: none;">
-                        <i class="fas fa-sign-out-alt"></i>
+                        <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
                         Logout
                     </button>
                 </div>
@@ -1011,6 +1052,29 @@
     </main>
 
     <!-- Modals -->
+    <!-- Onboarding Modal -->
+    <div id="onboardingModal" class="modal hidden" aria-modal="true" role="dialog" aria-labelledby="onboardingTitle">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 id="onboardingTitle" class="modal-title">Welcome to Financial Planner Pro</h3>
+                <button class="modal-close" id="closeOnboarding">&times;</button>
+            </div>
+            <div id="onboardingBody"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">
+                <a href="#" id="skipOnboarding" style="color:var(--text-secondary);text-decoration:none;">Skip tutorial</a>
+                <div style="display:flex;gap:.5rem;align-items:center;">
+                    <div style="width:180px;height:6px;background:var(--border-color);border-radius:4px;overflow:hidden;">
+                        <div id="onboardingProgress" class="progress-fill" style="width:0%"></div>
+                    </div>
+                    <span id="onboardingStepText" style="font-size:.9rem;color:var(--text-secondary);">1/5</span>
+                </div>
+                <div>
+                    <button class="btn btn-outline" id="prevOnboarding" aria-label="Previous">Back</button>
+                    <button class="btn btn-primary" id="nextOnboarding" aria-label="Next">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="incomeModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1352,6 +1416,13 @@
             document.getElementById('viewReportsBtn').addEventListener('click', showReports);
             document.getElementById('exportDataBtn').addEventListener('click', exportData);
             document.getElementById('profileBtn').addEventListener('click', showProfile);
+            document.getElementById('helpBtn').addEventListener('click', openHelp);
+            
+            // Onboarding events
+            document.getElementById('closeOnboarding').addEventListener('click', completeOnboarding);
+            document.getElementById('skipOnboarding').addEventListener('click', (e)=>{e.preventDefault();completeOnboarding();});
+            document.getElementById('prevOnboarding').addEventListener('click', ()=>changeOnboardingStep(-1));
+            document.getElementById('nextOnboarding').addEventListener('click', ()=>changeOnboardingStep(1));
 
             // Modal backdrop click
             document.querySelectorAll('.modal').forEach(modal => {
@@ -1360,6 +1431,14 @@
                         hideModal(modal.id);
                     }
                 });
+            });
+
+            // ESC to close active modal
+            document.addEventListener('keydown', (e)=>{
+                if (e.key === 'Escape') {
+                    const openModal = Array.from(document.querySelectorAll('.modal')).find(m=>!m.classList.contains('hidden'));
+                    if (openModal) hideModal(openModal.id);
+                }
             });
         }
 
@@ -1388,6 +1467,8 @@
             auth.onAuthStateChanged((user) => {
                 currentUser = user;
                 if (user) {
+                    // track last active
+                    updateUserSettings({ lastActive: new Date().toISOString() });
                     showDashboard();
                     loadUserData();
                 } else {
@@ -1418,6 +1499,12 @@
             }
             
             updateDashboard();
+
+            // Onboarding first run
+            const completed = userData.settings?.completedOnboarding || (localStorage.getItem('completedOnboarding') === 'true');
+            if (!completed) {
+                startOnboarding();
+            }
         }
 
         function toggleAuthMode() {
@@ -1635,11 +1722,33 @@
         }
 
         function updateDashboard() {
+            updateGreeting();
             updateStats();
             updateGoalsGrid();
             updateIncomeList();
             updateExpenseList();
             updateCharts();
+        }
+
+        function updateGreeting() {
+            // Insert greeting card once
+            if (!document.getElementById('greetingCard')) {
+                const container = document.querySelector('.container');
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = 'greetingCard';
+                card.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:1.1rem;font-weight:600;">Hi ${currentUser?.displayName || 'there'}! 👋</div>
+                            <div style="color:var(--text-secondary);font-size:.9rem;">Welcome back${currentUser?.metadata?.creationTime ? ` • Member since ${new Date(currentUser.metadata.creationTime).toLocaleDateString()}` : ''}</div>
+                        </div>
+                        <div id="smartInsight" class="badge badge-info" style="white-space:nowrap;"></div>
+                    </div>
+                `;
+                container.prepend(card);
+            }
+            updateSmartInsight();
         }
 
         function updateStats() {
@@ -1665,18 +1774,40 @@
             document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
             document.getElementById('netSavings').textContent = formatCurrency(netSavings);
             document.getElementById('goalsProgress').textContent = goalsProgress + '%';
+
+            updateSmartInsight();
+        }
+
+        function updateSmartInsight() {
+            const monthlyIncome = userData.income.reduce((sum, item) => item.frequency==='monthly'?sum+item.amount:sum + item.amount/12, 0);
+            const monthlyExpenses = userData.expenses.reduce((sum, item) => item.frequency==='monthly'?sum+item.amount:sum + item.amount/12, 0);
+            const rate = monthlyIncome > 0 ? Math.max(0, Math.round(((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100)) : 0;
+            const el = document.getElementById('smartInsight');
+            if (!el) return;
+            let message = `Savings rate: ${rate}%`;
+            if (rate >= 50) message += ' • Excellent saving!';
+            else if (rate < 20) message += ' • Consider reducing expenses';
+            el.textContent = message;
         }
 
         function updateGoalsGrid() {
             const goalsGrid = document.getElementById('goalsGrid');
             goalsGrid.innerHTML = '';
             
-            userData.goals.forEach(goal => {
+            // Auto-calc Emergency Fund target = 6 months of expenses
+            const monthlyExpenses = userData.expenses.reduce((sum, e)=> e.frequency==='monthly'?sum+e.amount:sum + e.amount/12, 0);
+            const ef = userData.goals.find(g=>g.name === 'Emergency Fund');
+            if (ef) ef.target = Math.max(ef.target || 0, Math.round(monthlyExpenses * 6));
+
+            const active = userData.goals.filter(g=> (g.current||0) > 0);
+            const inactive = userData.goals.filter(g=> (g.current||0) === 0);
+
+            const renderCard = (goal)=>{
                 const progress = Math.min((goal.current / goal.target) * 100, 100);
                 const monthsRemaining = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24 * 30));
                 const monthlyContribution = monthsRemaining > 0 ? (goal.target - goal.current) / monthsRemaining : 0;
                 
-                const statusBadge = getStatusBadge(progress, monthsRemaining);
+                const statusBadge = getStatusBadgeEnhanced(goal, progress, monthsRemaining);
                 
                 const goalCard = document.createElement('div');
                 goalCard.className = 'goal-card';
@@ -1702,21 +1833,42 @@
                     </div>
                 `;
                 goalsGrid.appendChild(goalCard);
-            });
+            };
+
+            // Render active goals
+            active.forEach(renderCard);
+
+            // Collapsible inactive goals
+            if (inactive.length > 0) {
+                const toggle = document.createElement('div');
+                toggle.className = 'card';
+                toggle.innerHTML = `
+                    <button id="toggleInactiveGoals" class="btn btn-outline" style="width:100%"><i class="fas fa-layer-group"></i> Show inactive goals (${inactive.length})</button>
+                    <div id="inactiveGoals" class="hidden" style="margin-top:1rem;"></div>
+                `;
+                goalsGrid.appendChild(toggle);
+                const inactiveContainer = toggle.querySelector('#inactiveGoals');
+                toggle.querySelector('#toggleInactiveGoals').addEventListener('click', ()=>{
+                    inactiveContainer.classList.toggle('hidden');
+                });
+                inactive.forEach(goal=>{
+                    const wrap = document.createElement('div');
+                    renderCard.call(null, goal); // reuse
+                });
+                inactive.forEach(goal=> renderCard(goal));
+            }
         }
 
-        function getStatusBadge(progress, monthsRemaining) {
-            if (progress >= 100) {
-                return { class: 'badge-success', text: 'Completed' };
-            } else if (monthsRemaining < 0) {
-                return { class: 'badge-danger', text: 'Overdue' };
-            } else if (progress >= 75) {
-                return { class: 'badge-success', text: 'On Track' };
-            } else if (progress >= 50) {
-                return { class: 'badge-warning', text: 'Progress' };
-            } else {
-                return { class: 'badge-info', text: 'Started' };
-            }
+        function getStatusBadgeEnhanced(goal, progress, monthsRemaining) {
+            if (progress >= 100) return { class: 'badge-success', text: '✅ Completed' };
+            if (monthsRemaining < 0) return { class: 'badge-danger', text: 'Overdue' };
+            // Expected progress based on time
+            const totalMonths = Math.max(1, Math.ceil((new Date(goal.deadline) - new Date(goal.createdAt||new Date()))/(1000*60*60*24*30)));
+            const elapsedMonths = Math.max(0, totalMonths - Math.max(0, monthsRemaining));
+            const expected = (elapsedMonths/totalMonths) * 100;
+            if (progress + 10 >= expected) return { class: 'badge-success', text: '🎯 On Track' };
+            if (progress + 10 < expected) return { class: 'badge-warning', text: '⚠️ Behind' };
+            return { class: 'badge-info', text: '⏳ In Progress' };
         }
 
         function updateGoalProgress(goalId) {
@@ -1891,10 +2043,12 @@
                         <div class="card">
                             <h4>Income Analysis</h4>
                             <div id="incomeAnalysisChart" style="height: 200px;"></div>
+                            ${ (userData.income.length === 0) ? '<div class="empty-state"><i class="fas fa-chart-line"></i><div>No data yet. Add income to see insights!</div></div>' : '' }
                         </div>
                         <div class="card">
                             <h4>Expense Analysis</h4>
                             <div id="expenseAnalysisChart" style="height: 200px;"></div>
+                            ${ (userData.expenses.length === 0) ? '<div class="empty-state"><i class="fas fa-chart-pie"></i><div>No data yet. Add expenses to see insights!</div></div>' : '' }
                         </div>
                     </div>
                     <div class="card">
@@ -1958,6 +2112,38 @@
             showNotification('Data exported successfully!', 'success');
         }
 
+        // Help System
+        function openHelp() {
+            const helpModal = document.createElement('div');
+            helpModal.className = 'modal';
+            helpModal.innerHTML = `
+                <div class="modal-content" style="max-width:720px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Help & Support</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="card">
+                        <button class="btn btn-primary" id="restartTutorial"><i class="fas fa-redo"></i> Restart Tutorial</button>
+                    </div>
+                    <div class="card">
+                        <h4>FAQ</h4>
+                        <p><strong>How do I get started?</strong> Use the Quick Actions to add your first income, expense, and goal.</p>
+                        <p><strong>Where is my data stored?</strong> Securely in your Firebase project (per-user) with local cache.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Contact</h4>
+                        <p>For support, open an issue on the GitHub repo.</p>
+                        <p>App Version: 1.0.0</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(helpModal);
+            helpModal.querySelector('#restartTutorial').addEventListener('click', ()=>{
+                helpModal.remove();
+                startOnboarding(true);
+            });
+        }
+
         function showProfile() {
             const profileModal = document.createElement('div');
             profileModal.className = 'modal';
@@ -1997,7 +2183,8 @@
             const notification = document.getElementById('notification');
             const notificationMessage = document.getElementById('notificationMessage');
             
-            notificationMessage.textContent = message;
+            const iconMap = { success: 'fa-check-circle', error: 'fa-times-circle', warning: 'fa-exclamation-circle', info: 'fa-info-circle' };
+            notificationMessage.innerHTML = `<i class="fas ${iconMap[type]||iconMap.info}" style="margin-right:.5rem;"></i>${message}`;
             notification.className = `notification ${type}`;
             notification.classList.add('show');
             
@@ -2253,6 +2440,95 @@
             if (userData.income.length > 0 || userData.expenses.length > 0) {
                 updateCharts();
             }
+        }
+
+        // Onboarding implementation
+        let onboardingStep = 0;
+        const onboardingSteps = [
+            {
+                title: 'Welcome to Financial Planner Pro',
+                body: '<p>Track income, expenses and goals with real-time sync and insights.</p>'
+            },
+            {
+                title: 'Add Income',
+                body: '<p>Click <strong>Add Income</strong> to record your earnings. You can set growth rates too.</p>'
+            },
+            {
+                title: 'Add Expense',
+                body: '<p>Click <strong>Add Expense</strong>. Categories like Education and Healthcare have built-in inflation.</p>'
+            },
+            {
+                title: 'Set a Goal',
+                body: '<p>Start with the <strong>Emergency Fund</strong>. We auto-calc 6 months of expenses as your target.</p>'
+            },
+            {
+                title: 'You are all set! 🎉',
+                body: '<p>Great job! Explore charts and Smart Insights. You can restart this tutorial anytime from Help.</p>'
+            }
+        ];
+
+        function startOnboarding(force=false) {
+            onboardingStep = 0;
+            if (force) {
+                localStorage.removeItem('completedOnboarding');
+                if (currentUser) updateUserSettings({ completedOnboarding: false });
+            }
+            renderOnboarding();
+            showModal('onboardingModal');
+        }
+
+        function renderOnboarding() {
+            const step = onboardingSteps[onboardingStep];
+            document.getElementById('onboardingTitle').textContent = step.title;
+            document.getElementById('onboardingBody').innerHTML = step.body;
+            const pct = ((onboardingStep+1)/onboardingSteps.length)*100;
+            document.getElementById('onboardingProgress').style.width = pct+'%';
+            document.getElementById('onboardingStepText').textContent = `${onboardingStep+1}/${onboardingSteps.length}`;
+            document.getElementById('prevOnboarding').disabled = onboardingStep===0;
+            document.getElementById('nextOnboarding').textContent = onboardingStep===onboardingSteps.length-1 ? 'Finish' : 'Next';
+        }
+
+        function changeOnboardingStep(delta) {
+            if (onboardingStep===onboardingSteps.length-1 && delta>0) {
+                completeOnboarding();
+                return;
+            }
+            onboardingStep = Math.min(onboardingSteps.length-1, Math.max(0, onboardingStep+delta));
+            renderOnboarding();
+        }
+
+        function completeOnboarding() {
+            hideModal('onboardingModal');
+            localStorage.setItem('completedOnboarding','true');
+            if (currentUser) updateUserSettings({ completedOnboarding: true });
+            launchConfetti();
+            showNotification('Onboarding completed!', 'success');
+        }
+
+        function launchConfetti() {
+            // lightweight confetti
+            const confetti = document.createElement('canvas');
+            confetti.style.position = 'fixed';
+            confetti.style.left = '0';
+            confetti.style.top = '0';
+            confetti.style.width = '100%';
+            confetti.style.height = '100%';
+            confetti.style.pointerEvents = 'none';
+            confetti.width = window.innerWidth; confetti.height = window.innerHeight;
+            document.body.appendChild(confetti);
+            const ctx = confetti.getContext('2d');
+            const pieces = Array.from({length: 120}).map(()=>({
+                x: Math.random()*confetti.width,
+                y: Math.random()*-confetti.height,
+                r: 4+Math.random()*6,
+                c: ['#00A65A','#4A90E2','#FF9800','#51CF66','#FF6B6B'][Math.floor(Math.random()*5)],
+                v: 2+Math.random()*3
+            }));
+            let t=0; const id = setInterval(()=>{
+                ctx.clearRect(0,0,confetti.width,confetti.height);
+                pieces.forEach(p=>{ p.y+=p.v; ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();});
+                t++; if (t>90){ clearInterval(id); confetti.remove(); }
+            },16);
         }
 
         // Set default date values and initialize password features
