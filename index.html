@@ -2782,33 +2782,52 @@
             }
         }
 
-        // Onboarding implementation
+        // Comprehensive Profile & Onboarding System
+        let profileData = {
+            age: null,
+            city: '',
+            state: '',
+            cityTier: null,
+            maritalStatus: '',
+            hasSpouse: false,
+            spouseWorking: false,
+            hasChildren: false,
+            numberOfChildren: 0,
+            children: [],
+            hasDependents: false,
+            dependents: [],
+            employmentStatus: '',
+            monthlyIncome: 0,
+            householdIncome: 0,
+            estimatedMonthlyExpenses: 0,
+            topSpendingCategories: [],
+            selectedGoals: []
+        };
+        
         let onboardingStep = 0;
-        const onboardingSteps = [
-            {
-                title: 'Welcome to Financial Planner Pro',
-                body: '<p>Track income, expenses and goals with real-time sync and insights.</p>'
-            },
-            {
-                title: 'Add Income',
-                body: '<p>Click <strong>Add Income</strong> to record your earnings. You can set growth rates too.</p>'
-            },
-            {
-                title: 'Add Expense',
-                body: '<p>Click <strong>Add Expense</strong>. Categories like Education and Healthcare have built-in inflation.</p>'
-            },
-            {
-                title: 'Set a Goal',
-                body: '<p>Start with the <strong>Emergency Fund</strong>. We auto-calc 6 months of expenses as your target.</p>'
-            },
-            {
-                title: 'You are all set! 🎉',
-                body: '<p>Great job! Explore charts and Smart Insights. You can restart this tutorial anytime from Help.</p>'
-            }
-        ];
 
         function startOnboarding(force=false) {
             onboardingStep = 0;
+            profileData = {
+                age: null,
+                city: '',
+                state: '',
+                cityTier: null,
+                maritalStatus: '',
+                hasSpouse: false,
+                spouseWorking: false,
+                hasChildren: false,
+                numberOfChildren: 0,
+                children: [],
+                hasDependents: false,
+                dependents: [],
+                employmentStatus: '',
+                monthlyIncome: 0,
+                householdIncome: 0,
+                estimatedMonthlyExpenses: 0,
+                topSpendingCategories: [],
+                selectedGoals: []
+            };
             if (force) {
                 localStorage.removeItem('completedOnboarding');
                 if (currentUser) updateUserSettings({ completedOnboarding: false });
@@ -2818,31 +2837,305 @@
         }
 
         function renderOnboarding() {
-            const step = onboardingSteps[onboardingStep];
-            document.getElementById('onboardingTitle').textContent = step.title;
-            document.getElementById('onboardingBody').innerHTML = step.body;
-            const pct = ((onboardingStep+1)/onboardingSteps.length)*100;
+            document.getElementById('onboardingBody').innerHTML = getOnboardingStepHTML(onboardingStep);
+            const pct = ((onboardingStep+1)/7)*100;
             document.getElementById('onboardingProgress').style.width = pct+'%';
-            document.getElementById('onboardingStepText').textContent = `${onboardingStep+1}/${onboardingSteps.length}`;
+            document.getElementById('onboardingStepText').textContent = `${onboardingStep+1}/7`;
             document.getElementById('prevOnboarding').disabled = onboardingStep===0;
-            document.getElementById('nextOnboarding').textContent = onboardingStep===onboardingSteps.length-1 ? 'Finish' : 'Next';
+            document.getElementById('nextOnboarding').textContent = onboardingStep===6 ? '🚀 Launch Dashboard' : 'Next';
+        }
+
+        function getOnboardingStepHTML(step) {
+            switch(step) {
+                case 0: return '<div class="onboarding-step"><div style="text-align:center;padding:2rem 0;"><div style="font-size:4rem;">🎉</div><h2>Welcome to Financial Planner Pro!</h2><p style="color:var(--text-secondary);margin:1rem 0;">Let\'s set up your personalized financial plan in just 5 minutes</p><ul style="text-align:left;max-width:400px;margin:0 auto;"><li>✓ Track income & expenses</li><li>✓ Smart goal recommendations</li><li>✓ Real-time insights</li><li>✓ Secure cloud sync</li></ul></div></div>';
+                case 1: return getStep1HTML();
+                case 2: return getStep2HTML();
+                case 3: return getStep3HTML();
+                case 4: return getStep4HTML();
+                case 5: return getStep5HTML();
+                case 6: return getReviewHTML();
+                default: return '';
+            }
+        }
+
+        function getStep1HTML() {
+            const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Surat', 'Jaipur', 'Other'];
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">👤 Tell Us About Yourself</h3>
+                    <div class="form-group">
+                        <label class="form-label">Age</label>
+                        <input type="range" id="profileAge" min="18" max="65" value="30" class="form-input" style="width:100%;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                            <span>18</span>
+                            <span id="ageValue">30</span>
+                            <span>65</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">City</label>
+                        <select id="profileCity" class="form-input">
+                            <option value="">Select city</option>
+                            ${cities.map(c=>`<option value="${c}">${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">State</label>
+                        <input type="text" id="profileState" class="form-input" placeholder="e.g., Maharashtra">
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStep2HTML() {
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">🏠 Your Family Situation</h3>
+                    <div class="form-group">
+                        <label class="form-label">Marital Status</label>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;">
+                            <button type="button" class="btn btn-outline" data-value="Single" onclick="selectMaritalStatus(this)">Single</button>
+                            <button type="button" class="btn btn-outline" data-value="Married" onclick="selectMaritalStatus(this)">Married</button>
+                            <button type="button" class="btn btn-outline" data-value="Divorced" onclick="selectMaritalStatus(this)">Divorced</button>
+                            <button type="button" class="btn btn-outline" data-value="Widowed" onclick="selectMaritalStatus(this)">Widowed</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Do you have children?</label>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">
+                            <button type="button" class="btn btn-outline" onclick="setHasChildren(true)">Yes</button>
+                            <button type="button" class="btn btn-outline" onclick="setHasChildren(false)">No</button>
+                            <button type="button" class="btn btn-outline" onclick="setHasChildren('expecting')">Expecting</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStep3HTML() {
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">💼 Your Employment</h3>
+                    <div class="form-group">
+                        <label class="form-label">Employment Status</label>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;">
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Salaried')">Salaried</button>
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Self-employed')">Self-employed</button>
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Freelancer')">Freelancer</button>
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Student')">Student</button>
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Retired')">Retired</button>
+                            <button type="button" class="btn btn-outline" onclick="selectEmployment('Unemployed')">Unemployed</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="incomeGroup" style="display:none;">
+                        <label class="form-label">Monthly Income (₹)</label>
+                        <input type="number" id="profileIncome" class="form-input" placeholder="e.g., 50000">
+                    </div>
+                    <div class="form-group" id="householdGroup" style="display:none;">
+                        <label class="form-label">Household Income (₹)</label>
+                        <input type="number" id="profileHouseholdIncome" class="form-input" placeholder="e.g., 100000">
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStep4HTML() {
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">🎯 Your Financial Goals</h3>
+                    <div style="background:var(--bg-tertiary);padding:1rem;border-radius:12px;margin-bottom:1rem;">
+                        <strong style="color:var(--primary-color);">💡 Smart recommendations based on your profile</strong>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><strong>Short-term Goals (&lt;1 year)</strong></label>
+                        <div style="display:grid;gap:8px;margin-top:8px;">
+                            <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Emergency Fund" onchange="toggleGoal(this)">
+                                🛡️ Emergency Fund
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Vacation" onchange="toggleGoal(this)">
+                                ✈️ Vacation
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><strong>Medium-term Goals (1-5 years)</strong></label>
+                        <div style="display:grid;gap:8px;margin-top:8px;">
+                            <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Home Down Payment" onchange="toggleGoal(this)">
+                                🏠 Home Down Payment
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Car Purchase" onchange="toggleGoal(this)">
+                                🚗 Car Purchase
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Wedding Fund" onchange="toggleGoal(this)">
+                                💍 Wedding Fund
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStep5HTML() {
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">💰 Your Spending Style</h3>
+                    <div class="form-group">
+                        <label class="form-label">Estimated Monthly Expenses (₹)</label>
+                        <input type="number" id="profileExpenses" class="form-input" placeholder="e.g., 30000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Top Spending Categories</label>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;">
+                            <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Food" onchange="toggleCategory(this)">
+                                Food
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Transport" onchange="toggleCategory(this)">
+                                Transport
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Shopping" onchange="toggleCategory(this)">
+                                Shopping
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface-color);border-radius:8px;cursor:pointer;">
+                                <input type="checkbox" value="Bills" onchange="toggleCategory(this)">
+                                Bills
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getReviewHTML() {
+            return `
+                <div class="onboarding-step">
+                    <h3 style="margin-bottom:1.5rem;">✨ Review & Launch</h3>
+                    <div style="background:var(--bg-tertiary);padding:1.5rem;border-radius:12px;">
+                        <h4 style="margin-bottom:1rem;">Here's what we learned about you:</h4>
+                        <ul style="list-style:none;padding:0;">
+                            <li style="padding:8px 0;border-bottom:1px solid var(--border);">👤 Age: ${profileData.age || 'Not provided'}</li>
+                            <li style="padding:8px 0;border-bottom:1px solid var(--border);">🏠 City: ${profileData.city || 'Not provided'}</li>
+                            <li style="padding:8px 0;border-bottom:1px solid var(--border);">🏠 Family: ${profileData.maritalStatus || 'Not provided'}</li>
+                            <li style="padding:8px 0;border-bottom:1px solid var(--border);">💼 Work: ${profileData.employmentStatus || 'Not provided'}</li>
+                            <li style="padding:8px 0;border-bottom:1px solid var(--border);">💰 Income: ${profileData.monthlyIncome ? '₹' + profileData.monthlyIncome.toLocaleString('en-IN') : 'Not provided'}</li>
+                            <li style="padding:8px 0;">🎯 Goals: ${profileData.selectedGoals.length} selected</li>
+                        </ul>
+                    </div>
+                    <div style="background:rgba(0,166,90,0.1);padding:1.5rem;border-radius:12px;margin-top:1rem;">
+                        <h4 style="margin-bottom:1rem;">We've prepared for you:</h4>
+                        <ul style="list-style:none;padding:0;">
+                            <li style="padding:4px 0;">✓ ${suggestGoalsFromProfile(profileData).length} pre-configured goals</li>
+                            <li style="padding:4px 0;">✓ Budget based on 50/30/20 rule</li>
+                            <li style="padding:4px 0;">✓ Smart insights personalized for you</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectMaritalStatus(btn) {
+            document.querySelectorAll('[data-value]').forEach(b=>b.classList.remove('btn-primary'));
+            btn.classList.add('btn-primary');
+            profileData.maritalStatus = btn.dataset.value;
+        }
+
+        function setHasChildren(value) {
+            profileData.hasChildren = value === true || value === 'expecting';
+        }
+
+        function selectEmployment(status) {
+            document.querySelectorAll('[onclick^="selectEmployment"]').forEach(b=>{ b.classList.remove('btn-primary'); });
+            event.target.classList.add('btn-primary');
+            profileData.employmentStatus = status;
+            document.getElementById('incomeGroup').style.display = status !== 'Unemployed' && status !== 'Student' ? 'block' : 'none';
+        }
+
+        function toggleGoal(cb) {
+            if (cb.checked && !profileData.selectedGoals.includes(cb.value)) {
+                profileData.selectedGoals.push(cb.value);
+            } else if (!cb.checked) {
+                profileData.selectedGoals = profileData.selectedGoals.filter(g=>g!==cb.value);
+            }
+        }
+
+        function toggleCategory(cb) {
+            if (cb.checked && !profileData.topSpendingCategories.includes(cb.value)) {
+                profileData.topSpendingCategories.push(cb.value);
+            } else if (!cb.checked) {
+                profileData.topSpendingCategories = profileData.topSpendingCategories.filter(c=>c!==cb.value);
+            }
+        }
+
+        function suggestGoalsFromProfile(profile) {
+            const goals = [];
+            const emergencyMonths = profile.employmentStatus === "Salaried" ? 6 : 12;
+            goals.push({ type: "Emergency Fund", amount: profile.estimatedMonthlyExpenses * emergencyMonths });
+            if (profile.age >= 30) goals.push({ type: "Retirement", amount: profile.estimatedMonthlyExpenses * 240 });
+            if (profile.maritalStatus === 'Single' && profile.age >= 25) goals.push({ type: "Wedding Fund", amount: 2500000 });
+            return goals;
         }
 
         function changeOnboardingStep(delta) {
-            if (onboardingStep===onboardingSteps.length-1 && delta>0) {
+            if (onboardingStep === 6 && delta > 0) {
                 completeOnboarding();
                 return;
             }
-            onboardingStep = Math.min(onboardingSteps.length-1, Math.max(0, onboardingStep+delta));
+            saveProfileFromCurrentStep();
+            onboardingStep = Math.min(6, Math.max(0, onboardingStep + delta));
             renderOnboarding();
+            if (onboardingStep === 1 && document.getElementById('profileAge')) {
+                document.getElementById('profileAge').addEventListener('input', (e)=>{
+                    document.getElementById('ageValue').textContent = e.target.value;
+                });
+            }
+        }
+
+        function saveProfileFromCurrentStep() {
+            if (onboardingStep === 1) {
+                profileData.age = parseInt(document.getElementById('profileAge')?.value) || null;
+                profileData.city = document.getElementById('profileCity')?.value || '';
+                profileData.state = document.getElementById('profileState')?.value || '';
+            }
+            if (onboardingStep === 3) {
+                profileData.monthlyIncome = parseInt(document.getElementById('profileIncome')?.value) || 0;
+                profileData.householdIncome = parseInt(document.getElementById('profileHouseholdIncome')?.value) || 0;
+            }
+            if (onboardingStep === 5) {
+                profileData.estimatedMonthlyExpenses = parseInt(document.getElementById('profileExpenses')?.value) || 0;
+            }
         }
 
         function completeOnboarding() {
             hideModal('onboardingModal');
             localStorage.setItem('completedOnboarding','true');
-            if (currentUser) updateUserSettings({ completedOnboarding: true });
+            if (currentUser) {
+                userData.profile = profileData;
+                updateUserSettings({ completedOnboarding: true, profileCompleteness: 85 });
+                const suggestedGoals = suggestGoalsFromProfile(profileData);
+                suggestedGoals.forEach(sg => {
+                    const goal = {
+                        id: Date.now().toString() + Math.random(),
+                        name: sg.type,
+                        target: sg.amount,
+                        current: 0,
+                        deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                        priority: 'high',
+                        createdAt: new Date().toISOString()
+                    };
+                    userData.goals.push(goal);
+                });
+                saveUserData();
+                updateDashboard();
+            }
             launchConfetti();
-            showNotification('Onboarding completed!', 'success');
+            showNotification('🎉 Your personalized dashboard is ready!', 'success');
         }
 
         function launchConfetti() {
