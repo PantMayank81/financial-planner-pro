@@ -1454,7 +1454,6 @@
             // Form events
             document.getElementById('incomeForm').addEventListener('submit', handleIncomeSubmit);
             document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
-            document.getElementById('goalForm').addEventListener('submit', handleGoalSubmit);
 
             // Other events
             document.getElementById('viewReportsBtn').addEventListener('click', showReports);
@@ -1702,7 +1701,8 @@
 
         function hideModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
-            document.getElementById(modalId).querySelector('form').reset();
+            const form = document.getElementById(modalId).querySelector('form');
+            if (form) form.reset();
         }
 
         function handleIncomeSubmit(e) {
@@ -1743,26 +1743,6 @@
             updateDashboard();
             hideModal('expenseModal');
             showNotification('Expense added successfully!', 'success');
-        }
-
-        function handleGoalSubmit(e) {
-            e.preventDefault();
-            
-            const goal = {
-                id: Date.now().toString(),
-                name: document.getElementById('goalName').value,
-                target: parseFloat(document.getElementById('goalTarget').value),
-                current: parseFloat(document.getElementById('goalCurrent').value) || 0,
-                deadline: document.getElementById('goalDeadline').value,
-                priority: document.getElementById('goalPriority').value,
-                createdAt: new Date().toISOString()
-            };
-            
-            userData.goals.push(goal);
-            saveUserData();
-            updateDashboard();
-            hideModal('goalModal');
-            showNotification('Goal added successfully!', 'success');
         }
 
         function updateDashboard() {
