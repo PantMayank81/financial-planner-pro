@@ -1871,20 +1871,48 @@
             
             showLoading(true);
             
+            // Try loading from localStorage first (quick)
+            try {
+                const backup = localStorage.getItem('userData_backup');
+                if (backup) {
+                    const parsed = JSON.parse(backup);
+                    userData = { ...userData, ...parsed };
+                    console.log('Loaded from localStorage backup');
+                }
+            } catch (e) {
+                console.warn('Failed to load localStorage backup:', e);
+            }
+            
+            // Then sync from Firestore
             db.collection('users').doc(currentUser.uid).get()
                 .then(doc => {
                     if (doc.exists) {
-                        userData = { ...userData, ...doc.data() };
+                        const firestoreData = doc.data();
+                        userData = { ...userData, ...firestoreData };
+                        // Update localStorage backup
+                        localStorage.setItem('userData_backup', JSON.stringify(userData));
                     } else {
                         // Initialize with predefined goals
-                        userData.goals = [...predefinedGoals];
+                        if (userData.goals.length === 0) {
+                            userData.goals = [...predefinedGoals];
+                        }
                         saveUserData();
                     }
                     updateDashboard();
                 })
                 .catch(error => {
-                    console.error('Error loading user data:', error);
-                    showNotification('Error loading data', 'error');
+                    console.error('Error loading user data from Firestore:', error);
+                    // If we have localStorage data, continue using it
+                    if (localStorage.getItem('userData_backup')) {
+                        console.log('Using localStorage data - Firestore sync failed');
+                        if (error.code === 'permission-denied') {
+                            showNotification('⚠️ Using offline data. Check Firestore rules to enable cloud sync.', 'warning');
+                        }
+                        updateDashboard();
+                    } else {
+                        // No backup, show error
+                        showNotification('Error loading data: ' + error.message, 'error');
+                    }
                 })
                 .finally(() => {
                     showLoading(false);
@@ -1892,12 +1920,37 @@
         }
 
         function saveUserData() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.log('No user logged in, skipping save');
+                return;
+            }
             
-            db.collection('users').doc(currentUser.uid).set(userData)
+            // Save to localStorage as backup
+            try {
+                localStorage.setItem('userData_backup', JSON.stringify(userData));
+            } catch (e) {
+                console.warn('LocalStorage save failed:', e);
+            }
+            
+            db.collection('users').doc(currentUser.uid).set(userData, { merge: true })
+                .then(() => {
+                    console.log('Data saved successfully');
+                    // Only show success for critical saves, not every keystroke
+                })
                 .catch(error => {
                     console.error('Error saving user data:', error);
-                    showNotification('Error saving data', 'error');
+                    // Only show error if it's not a permission error (which user can't fix)
+                    if (error.code !== 'permission-denied') {
+                        showNotification('Error saving data: ' + error.message, 'error');
+                    } else {
+                        // Permission denied - user needs to check Firestore rules
+                        console.warn('Permission denied - check Firestore security rules');
+                        // Don't spam user with this error repeatedly
+                        if (!localStorage.getItem('firestore_error_shown')) {
+                            showNotification('⚠️ Please check Firestore security rules in Firebase Console', 'warning');
+                            localStorage.setItem('firestore_error_shown', 'true');
+                        }
+                    }
                 });
         }
 
