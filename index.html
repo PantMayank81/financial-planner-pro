@@ -2473,26 +2473,107 @@
             });
         }
 
+        function calculateProfileCompleteness() {
+            const profile = userData.profile || {};
+            let completed = 0;
+            let total = 8;
+            
+            const checks = {
+                'Basic info': profile.age && profile.city ? true : false,
+                'Family details': profile.maritalStatus ? true : false,
+                'Employment': profile.employmentStatus && profile.monthlyIncome > 0 ? true : false,
+                'Financial goals': profile.selectedGoals && profile.selectedGoals.length > 0 ? true : false,
+                'Spending style': profile.estimatedMonthlyExpenses > 0 ? true : false,
+                'Top categories': profile.topSpendingCategories && profile.topSpendingCategories.length > 0 ? true : false,
+                'Current assets': false, // Not implemented yet
+                'Notification preferences': userData.settings?.notifications ? true : false
+            };
+            
+            Object.values(checks).forEach(check => {
+                if (check) completed++;
+            });
+            
+            const percentage = Math.round((completed / total) * 100);
+            return { percentage, checks, completed, total };
+        }
+
         function showProfile() {
+            const completeness = calculateProfileCompleteness();
+            const profile = userData.profile || {};
+            
             const profileModal = document.createElement('div');
             profileModal.className = 'modal';
             profileModal.innerHTML = `
-                <div class="modal-content">
+                <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
                         <h3 class="modal-title">User Profile</h3>
                         <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
                     </div>
+                    
+                    <!-- Profile Completion Card -->
+                    <div class="card" style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="margin: 0;">YOUR PROFILE: ${completeness.percentage}% COMPLETE</h4>
+                        </div>
+                        <div class="progress-bar" style="margin-bottom: 1rem;">
+                            <div class="progress-fill ${completeness.percentage >= 75 ? 'progress-high' : completeness.percentage >= 50 ? 'progress-medium' : 'progress-low'}" 
+                                 style="width: ${completeness.percentage}%" 
+                                 data-percent="${completeness.percentage}%"></div>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 1rem;">
+                            ${completeness.completed} of ${completeness.total} sections completed
+                        </div>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${Object.entries(completeness.checks).map(([label, completed]) => `
+                                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: ${completed ? 'rgba(81,207,102,0.1)' : 'var(--bg-tertiary)'}; border-radius: 8px;">
+                                    ${completed ? '<span style="color: var(--success-color);">✓</span>' : '<span style="color: var(--text-secondary);">⏳</span>'}
+                                    <span style="flex: 1; ${completed ? '' : 'color: var(--text-secondary);'}">${label}</span>
+                                    ${completed ? '<span style="color: var(--success-color); font-size: 12px;">100%</span>' : '<span style="color: var(--text-secondary); font-size: 12px;">0%</span>'}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${completeness.percentage < 100 ? `
+                            <div style="margin-top: 1rem; padding: 1rem; background: rgba(0,166,90,0.1); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                                <strong style="color: var(--primary-color); display: block; margin-bottom: 0.5rem;">💡 Complete your profile to unlock:</strong>
+                                <ul style="margin: 0; padding-left: 1.5rem; font-size: 14px;">
+                                    <li>Net worth tracking</li>
+                                    <li>Investment insights</li>
+                                    <li>Debt payoff calculator</li>
+                                    <li>Personalized recommendations</li>
+                                </ul>
+                                <button class="btn btn-primary" onclick="startOnboarding(true); this.closest('.modal').remove();" style="width: 100%; margin-top: 1rem;">
+                                    <i class="fas fa-user-check"></i> Complete Profile
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
                     <div class="card">
                         <h4>Account Information</h4>
                         <p><strong>Email:</strong> ${currentUser.email}</p>
                         <p><strong>Name:</strong> ${currentUser.displayName || 'Not set'}</p>
                         <p><strong>Member since:</strong> ${new Date(currentUser.metadata.creationTime).toLocaleDateString()}</p>
+                        ${userData.settings?.lastActive ? `<p><strong>Last active:</strong> ${new Date(userData.settings.lastActive).toLocaleDateString()}</p>` : ''}
                     </div>
+                    
+                    ${profile.age || profile.city || profile.maritalStatus ? `
+                    <div class="card">
+                        <h4>Profile Details</h4>
+                        ${profile.age ? `<p><strong>Age:</strong> ${profile.age}</p>` : ''}
+                        ${profile.city ? `<p><strong>City:</strong> ${profile.city}${profile.state ? ', ' + profile.state : ''}</p>` : ''}
+                        ${profile.maritalStatus ? `<p><strong>Marital Status:</strong> ${profile.maritalStatus}</p>` : ''}
+                        ${profile.employmentStatus ? `<p><strong>Employment:</strong> ${profile.employmentStatus}</p>` : ''}
+                        ${profile.monthlyIncome > 0 ? `<p><strong>Monthly Income:</strong> ${formatCurrency(profile.monthlyIncome)}</p>` : ''}
+                        ${profile.selectedGoals && profile.selectedGoals.length > 0 ? `<p><strong>Selected Goals:</strong> ${profile.selectedGoals.join(', ')}</p>` : ''}
+                    </div>
+                    ` : ''}
+                    
                     <div class="card">
                         <h4>Data Summary</h4>
                         <p><strong>Total Income Entries:</strong> ${userData.income.length}</p>
                         <p><strong>Total Expense Entries:</strong> ${userData.expenses.length}</p>
                         <p><strong>Total Goals:</strong> ${userData.goals.length}</p>
+                        ${userData.goals.filter(g => g.current > 0).length > 0 ? `<p><strong>Active Goals:</strong> ${userData.goals.filter(g => g.current > 0).length}</p>` : ''}
                     </div>
                 </div>
             `;
@@ -3170,7 +3251,9 @@
             localStorage.setItem('completedOnboarding','true');
             if (currentUser) {
                 userData.profile = profileData;
-                updateUserSettings({ completedOnboarding: true, profileCompleteness: 85 });
+                // Calculate actual completeness after setting profile
+                const completeness = calculateProfileCompleteness();
+                updateUserSettings({ completedOnboarding: true, profileCompleteness: completeness.percentage });
                 const suggestedGoals = suggestGoalsFromProfile(profileData);
                 suggestedGoals.forEach(sg => {
                     const goal = {
