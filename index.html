@@ -828,6 +828,79 @@
             color: var(--text-secondary);
             cursor: pointer;
         }
+        
+        /* Verification Badges */
+        .verify-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .verify-badge.verified { background: rgba(81, 207, 102, 0.1); color: #51CF66; }
+        .verify-badge.estimated { background: rgba(255, 152, 0, 0.1); color: #FF9800; }
+        .verify-badge.auto { background: rgba(74, 144, 226, 0.1); color: #4A90E2; }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-flex;
+        }
+        .tooltip-content {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            margin-bottom: 4px;
+        }
+        .tooltip:hover .tooltip-content { opacity: 1; }
+        
+        .info-icon {
+            cursor: help;
+            color: var(--secondary-color);
+        }
+        
+        /* Goal Template Cards */
+        .goal-template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .goal-template-card {
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .goal-template-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        .goal-template-card.selected {
+            border-color: var(--primary-color);
+            background: rgba(0, 166, 90, 0.05);
+        }
+        .goal-template-icon {
+            font-size: 2rem;
+        }
+        .goal-template-name {
+            font-weight: 600;
+            margin: 0.5rem 0;
+        }
     </style>
 </head>
 <body>
@@ -1163,41 +1236,12 @@
     </div>
 
     <div id="goalModal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 720px;">
             <div class="modal-header">
-                <h3 class="modal-title">Add Financial Goal</h3>
+                <h3 class="modal-title" id="goalWizardTitle">Add Financial Goal</h3>
                 <button class="modal-close" id="closeGoalModal">&times;</button>
             </div>
-            <form id="goalForm">
-                <div class="form-group">
-                    <label class="form-label" for="goalName">Goal Name</label>
-                    <input type="text" id="goalName" class="form-input" placeholder="e.g., Emergency Fund" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="goalTarget">Target Amount (₹)</label>
-                    <input type="number" id="goalTarget" class="form-input" placeholder="Enter target amount" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="goalCurrent">Current Amount (₹)</label>
-                    <input type="number" id="goalCurrent" class="form-input" placeholder="Enter current amount" value="0">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="goalDeadline">Target Date</label>
-                    <input type="date" id="goalDeadline" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="goalPriority">Priority</label>
-                    <select id="goalPriority" class="form-input" required>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    <i class="fas fa-plus"></i>
-                    Add Goal
-                </button>
-            </form>
+            <div id="goalWizardBody"></div>
         </div>
     </div>
 
@@ -1402,7 +1446,7 @@
             // Modal events
             document.getElementById('addIncomeBtn').addEventListener('click', () => showModal('incomeModal'));
             document.getElementById('addExpenseBtn').addEventListener('click', () => showModal('expenseModal'));
-            document.getElementById('addGoalBtn').addEventListener('click', () => showModal('goalModal'));
+            document.getElementById('addGoalBtn').addEventListener('click', startGoalWizard);
             document.getElementById('closeIncomeModal').addEventListener('click', () => hideModal('incomeModal'));
             document.getElementById('closeExpenseModal').addEventListener('click', () => hideModal('expenseModal'));
             document.getElementById('closeGoalModal').addEventListener('click', () => hideModal('goalModal'));
@@ -2206,6 +2250,70 @@
             }).format(amount);
         }
 
+        // Indian Currency Formatter (Lakh/Crore notation)
+        function formatIndianCurrency(amount) {
+            if (amount >= 10000000) {
+                return '₹' + (amount / 10000000).toFixed(2) + ' Cr';
+            } else if (amount >= 100000) {
+                return '₹' + (amount / 100000).toFixed(2) + ' L';
+            } else if (amount >= 1000) {
+                return '₹' + (amount / 1000).toFixed(0) + 'K';
+            }
+            return '₹' + amount.toLocaleString('en-IN');
+        }
+        
+        function formatIndianNumber(num) {
+            return num.toLocaleString('en-IN');
+        }
+
+        // Verified Goal Templates with Indian Data
+        const goalTemplates = {
+            wedding: {
+                name: "Wedding Fund",
+                icon: "💍",
+                verified: true,
+                source: "WeddingWire India Survey 2024-2025",
+                ranges: {
+                    budget: { guests: "100-150", amount: "₹5-10L" },
+                    midRange: { guests: "200-300", amount: "₹10-25L" },
+                    average: { guests: "300-400", amount: "₹30L (2024 avg)" },
+                    luxury: { guests: "500+", amount: "₹40L-1Cr+" }
+                },
+                userInputRequired: true,
+                defaultAmount: null,
+                disclaimer: "Costs vary by city, venue, preferences. Tier 1 cities 30-50% higher."
+            },
+            studyAbroad: {
+                name: "Study Abroad Fund",
+                icon: "✈️🎓",
+                verified: true,
+                source: "Education consultancy data 2025",
+                countries: {
+                    usa: { masters2yr: "₹1.24-2.2 Cr", mba2yr: "₹1.64-3 Cr", note: "Includes tuition + living" },
+                    uk: { masters1yr: "₹30-60L", mba1yr: "₹45L-1Cr" },
+                    canada: { masters2yr: "₹55L-1.4Cr" },
+                    germany: { masters2yr: "₹20-40L", note: "Most affordable, public universities" }
+                },
+                userInputRequired: true,
+                defaultAmount: null,
+                disclaimer: "Subject to currency fluctuations. Does not include travel, visa."
+            },
+            car: {
+                name: "Car Purchase",
+                icon: "🚗",
+                verified: true,
+                source: "CarWale India Oct 2025, GST 2.0 prices",
+                segments: {
+                    hatchback: { examples: ["Maruti Swift: ₹6.47-10L", "Hyundai i20: ₹7.8-12.3L"], range: "₹6-12L" },
+                    sedan: { examples: ["Honda City: ₹13-18L", "Skoda Slavia: ₹13-20.5L"], range: "₹7-20L" },
+                    suv: { examples: ["Hyundai Creta: ₹12.57-23.97L", "Tata Nexon: ₹8.2-15.2L"], range: "₹8-25L" }
+                },
+                userInputRequired: true,
+                defaultAmount: null,
+                note: "On-road prices include registration, insurance, other charges"
+            }
+        };
+
         // Password Strength Functions
         function checkPasswordStrength() {
             const password = document.getElementById('password').value;
@@ -2529,6 +2637,205 @@
                 pieces.forEach(p=>{ p.y+=p.v; ctx.fillStyle=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();});
                 t++; if (t>90){ clearInterval(id); confetti.remove(); }
             },16);
+        }
+
+        // Goal Wizard Implementation
+        let goalWizardStep = 0;
+        let selectedTemplate = null;
+        let wizardData = {};
+
+        function startGoalWizard() {
+            goalWizardStep = 1;
+            selectedTemplate = null;
+            wizardData = {};
+            renderGoalWizardStep();
+            showModal('goalModal');
+        }
+
+        function renderGoalWizardStep() {
+            const body = document.getElementById('goalWizardBody');
+            const title = document.getElementById('goalWizardTitle');
+            
+            if (goalWizardStep === 1) {
+                title.textContent = 'Choose Your Financial Goal';
+                body.innerHTML = `
+                    <div class="goal-template-grid" id="templateGrid">
+                        ${Object.entries(goalTemplates).map(([key, t]) => `
+                            <div class="goal-template-card" data-key="${key}">
+                                <div class="goal-template-icon">${t.icon}</div>
+                                <div class="goal-template-name">${t.name}</div>
+                                <span class="verify-badge verified">Verified</span>
+                            </div>
+                        `).join('')}
+                        <div class="goal-template-card" data-key="custom">
+                            <div class="goal-template-icon">+</div>
+                            <div class="goal-template-name">Create Custom Goal</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1rem;">
+                        <button class="btn btn-outline" onclick="hideModal('goalModal')">Cancel</button>
+                        <button class="btn btn-primary" id="nextWizardBtn" disabled>Next →</button>
+                    </div>
+                `;
+                
+                body.querySelectorAll('.goal-template-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        body.querySelectorAll('.goal-template-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        selectedTemplate = card.dataset.key;
+                        document.getElementById('nextWizardBtn').disabled = false;
+                    });
+                });
+            } else if (goalWizardStep === 2 && selectedTemplate !== 'custom') {
+                const t = goalTemplates[selectedTemplate];
+                title.textContent = `${t.icon} ${t.name}`;
+                
+                let infoHTML = '';
+                if (t.ranges) {
+                    infoHTML = Object.entries(t.ranges).map(([type, data]) => `
+                        <div style="padding:0.75rem;background:var(--surface-color);border-radius:8px;margin:0.5rem 0;">
+                            <strong>${type.charAt(0).toUpperCase() + type.slice(1)}</strong>${data.guests ? ` (${data.guests} guests)` : ''}: ${data.amount}
+                        </div>
+                    `).join('');
+                } else if (t.countries) {
+                    infoHTML = Object.entries(t.countries).map(([country, data]) => `
+                        <div style="padding:0.75rem;background:var(--surface-color);border-radius:8px;margin:0.5rem 0;">
+                            <strong>${country.toUpperCase()}</strong>: ${Object.values(data).join(', ')}
+                        </div>
+                    `).join('');
+                } else if (t.segments) {
+                    infoHTML = Object.entries(t.segments).map(([seg, data]) => `
+                        <div style="padding:0.75rem;background:var(--surface-color);border-radius:8px;margin:0.5rem 0;">
+                            <strong>${seg.charAt(0).toUpperCase() + seg.slice(1)}</strong>: ${data.range}<br/>
+                            <small>${data.examples.join(', ')}</small>
+                        </div>
+                    `).join('');
+                }
+                
+                body.innerHTML = `
+                    <div class="card">
+                        <div style="margin-bottom:1rem;">
+                            <i class="fas fa-info-circle" style="color:var(--info-color);"></i>
+                            <strong>Data Source:</strong> ${t.source}
+                            ${t.note ? `<br/><small style="color:var(--text-secondary);">${t.note}</small>` : ''}
+                        </div>
+                        ${infoHTML}
+                        <div style="margin-top:1rem;padding:0.75rem;background:rgba(255,152,0,0.1);border-radius:8px;border-left:3px solid #FF9800;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Disclaimer:</strong> ${t.disclaimer}
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:1rem;margin-top:1rem;">
+                        <button class="btn btn-outline" onclick="goalWizardStep--; renderGoalWizardStep();">← Back</button>
+                        <button class="btn btn-primary" onclick="goalWizardStep++; renderGoalWizardStep();">Next →</button>
+                    </div>
+                `;
+            } else if (goalWizardStep === 2 && selectedTemplate === 'custom') {
+                title.textContent = 'Create Custom Goal';
+                body.innerHTML = `
+                    <form id="customGoalForm">
+                        <div class="form-group">
+                            <label class="form-label">Goal Name</label>
+                            <input type="text" class="form-input" required placeholder="e.g., Dream Vacation">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target Amount (₹)</label>
+                            <input type="number" class="form-input" required placeholder="Enter amount">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Current Savings (₹)</label>
+                            <input type="number" class="form-input" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target Date</label>
+                            <input type="date" class="form-input" required>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:1rem;margin-top:1rem;">
+                            <button type="button" class="btn btn-outline" onclick="goalWizardStep--; renderGoalWizardStep();">← Back</button>
+                            <button type="submit" class="btn btn-primary">Create Goal</button>
+                        </div>
+                    </form>
+                `;
+                body.querySelector('#customGoalForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const goal = {
+                        id: Date.now().toString(),
+                        name: form[0].value,
+                        target: parseFloat(form[1].value),
+                        current: parseFloat(form[2].value) || 0,
+                        deadline: form[3].value,
+                        priority: 'medium',
+                        createdAt: new Date().toISOString(),
+                        isCustom: true
+                    };
+                    userData.goals.push(goal);
+                    saveUserData();
+                    updateDashboard();
+                    hideModal('goalModal');
+                    showNotification('Goal created successfully!', 'success');
+                });
+                return;
+            } else if (goalWizardStep === 3) {
+                const t = goalTemplates[selectedTemplate];
+                title.textContent = `${t.icon} ${t.name} - Enter Details`;
+                body.innerHTML = `
+                    <form id="templateGoalForm">
+                        <div class="form-group">
+                            <label class="form-label">Target Amount (₹)</label>
+                            <input type="number" class="form-input" required placeholder="e.g., ₹25 Lakhs">
+                            <small style="color:var(--text-secondary);">Based on the data above, what's your target?</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Current Savings (₹)</label>
+                            <input type="number" class="form-input" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target Date</label>
+                            <input type="date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select class="form-input" required>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div style="padding:1rem;background:rgba(255,152,0,0.1);border-radius:8px;margin:1rem 0;">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong>Remember:</strong> This is YOUR estimate. Adjust based on your specific plans.
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:1rem;margin-top:1rem;">
+                            <button type="button" class="btn btn-outline" onclick="goalWizardStep--; renderGoalWizardStep();">← Back</button>
+                            <button type="submit" class="btn btn-primary">Create Goal</button>
+                        </div>
+                    </form>
+                `;
+                body.querySelector('#templateGoalForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const form = e.target;
+                    const goal = {
+                        id: Date.now().toString(),
+                        name: t.name,
+                        target: parseFloat(form[0].value),
+                        current: parseFloat(form[2].value) || 0,
+                        deadline: form[3].value,
+                        priority: form[4].value,
+                        createdAt: new Date().toISOString(),
+                        templateType: selectedTemplate,
+                        referenceData: {
+                            source: t.source,
+                            disclaimer: t.disclaimer
+                        }
+                    };
+                    userData.goals.push(goal);
+                    saveUserData();
+                    updateDashboard();
+                    hideModal('goalModal');
+                    showNotification('Goal created successfully!', 'success');
+                });
+            }
         }
 
         // Set default date values and initialize password features
