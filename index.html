@@ -1776,6 +1776,9 @@
         }
 
         function updateStats() {
+            const el = document.getElementById('totalIncome');
+            if (!el) return; // Dashboard not loaded yet
+            
             const totalIncome = userData.income.reduce((sum, item) => {
                 if (item.frequency === 'monthly') return sum + (item.amount * 12);
                 if (item.frequency === 'yearly') return sum + item.amount;
@@ -1816,6 +1819,7 @@
 
         function updateGoalsGrid() {
             const goalsGrid = document.getElementById('goalsGrid');
+            if (!goalsGrid) return; // Dashboard not loaded yet
             goalsGrid.innerHTML = '';
             
             // Auto-calc Emergency Fund target = 6 months of expenses
@@ -1910,6 +1914,7 @@
 
         function updateIncomeList() {
             const incomeList = document.getElementById('incomeList');
+            if (!incomeList) return; // Dashboard not loaded yet
             incomeList.innerHTML = '';
             
             userData.income.slice(-5).reverse().forEach(income => {
@@ -1935,6 +1940,7 @@
 
         function updateExpenseList() {
             const expenseList = document.getElementById('expenseList');
+            if (!expenseList) return; // Dashboard not loaded yet
             expenseList.innerHTML = '';
             
             userData.expenses.slice(-5).reverse().forEach(expense => {
@@ -1964,7 +1970,9 @@
         }
 
         function updateIncomeExpenseChart() {
-            const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+            const canvas = document.getElementById('incomeExpenseChart');
+            if (!canvas) return; // Dashboard not loaded yet
+            const ctx = canvas.getContext('2d');
             const primaryColor = getCssVar('--primary-color');
             const secondaryColor = getCssVar('--secondary-color');
             
@@ -2014,7 +2022,9 @@
         }
 
         function updateExpenseCategoryChart() {
-            const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
+            const canvas = document.getElementById('expenseCategoryChart');
+            if (!canvas) return; // Dashboard not loaded yet
+            const ctx = canvas.getContext('2d');
             
             const categoryTotals = {};
             userData.expenses.forEach(expense => {
@@ -2680,7 +2690,8 @@
                 } else if (t.countries) {
                     infoHTML = Object.entries(t.countries).map(([country, data]) => `
                         <div style="padding:0.75rem;background:var(--surface-color);border-radius:8px;margin:0.5rem 0;">
-                            <strong>${country.toUpperCase()}</strong>: ${Object.values(data).join(', ')}
+                            <strong>${country.toUpperCase()}</strong><br/>
+                            ${Object.entries(data).map(([k,v]) => `<small>${k.charAt(0).toUpperCase()+k.slice(1)}: ${v}</small>`).join(', ')}
                         </div>
                     `).join('');
                 } else if (t.segments) {
